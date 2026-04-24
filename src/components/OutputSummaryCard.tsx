@@ -90,8 +90,17 @@ export const OutputSummaryCard: React.FC<OutputSummaryCardProps> = ({ state }) =
         </section>
 
         <section>
-          <h3>Review Notes</h3>
+          <h3>Review Notes & Governance</h3>
           <p className="mb-xs"><strong>General Review:</strong> {state.institutionalNotes.reviewerNotes || 'None'}</p>
+          {state.institutionalNotes.aiInvolvement && (
+            <p className="mb-xs"><strong>AI Involvement:</strong> {state.institutionalNotes.aiInvolvement}</p>
+          )}
+          {state.institutionalNotes.risksConcerns && (
+            <p className="mb-xs"><strong>Risks / Concerns:</strong> {state.institutionalNotes.risksConcerns}</p>
+          )}
+          {state.institutionalNotes.assumptions && (
+            <p className="mb-xs"><strong>Assumptions:</strong> {state.institutionalNotes.assumptions}</p>
+          )}
           <p className="mb-0"><strong>Additional Notes:</strong> {state.institutionalNotes.generalNotes || 'None'}</p>
         </section>
       </div>

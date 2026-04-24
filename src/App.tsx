@@ -53,6 +53,33 @@ function App() {
               placeholder="Record approval committee notes..."
             />
           </div>
+          <div className="form-group mb-sm">
+            <label>AI Involvement <span className="text-muted">(Optional)</span></label>
+            <textarea 
+              value={state.institutionalNotes.aiInvolvement || ''}
+              onChange={(e) => updateState({ institutionalNotes: { ...state.institutionalNotes, aiInvolvement: e.target.value } })}
+              placeholder="How was AI involved in this curriculum change process?"
+              rows={2}
+            />
+          </div>
+          <div className="form-group mb-sm">
+            <label>Risks / Concerns <span className="text-muted">(Optional)</span></label>
+            <textarea 
+              value={state.institutionalNotes.risksConcerns || ''}
+              onChange={(e) => updateState({ institutionalNotes: { ...state.institutionalNotes, risksConcerns: e.target.value } })}
+              placeholder="Identify any risks or concerns associated with these changes."
+              rows={2}
+            />
+          </div>
+          <div className="form-group mb-sm">
+            <label>Assumptions <span className="text-muted">(Optional)</span></label>
+            <textarea 
+              value={state.institutionalNotes.assumptions || ''}
+              onChange={(e) => updateState({ institutionalNotes: { ...state.institutionalNotes, assumptions: e.target.value } })}
+              placeholder="What assumptions were made during this process?"
+              rows={2}
+            />
+          </div>
           <div className="form-group mb-0">
             <label>General Context Notes</label>
             <textarea 

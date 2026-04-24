@@ -13,7 +13,10 @@ const defaultState: AppState = {
   changeLog: [],
   institutionalNotes: {
     reviewerNotes: '',
-    generalNotes: ''
+    generalNotes: '',
+    aiInvolvement: '',
+    risksConcerns: '',
+    assumptions: ''
   },
   lastUpdated: new Date().toISOString()
 };
@@ -62,7 +65,10 @@ const demoState: AppState = {
   ],
   "institutionalNotes": {
     "reviewerNotes": "Example revision for QA demonstration",
-    "generalNotes": "Demo data should remain editable"
+    "generalNotes": "Demo data should remain editable",
+    "aiInvolvement": "AI was used to summarize student feedback on the original assessment design to identify pain points.",
+    "risksConcerns": "Risk of AI-generated content being indistinguishable from student work if guidance is too permissive.",
+    "assumptions": "Assumes students have basic AI literacy and understand the difference between assistive and generative use."
   },
   "lastUpdated": new Date().toISOString()
 };

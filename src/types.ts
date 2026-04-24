@@ -35,6 +35,9 @@ export interface ChangeLogEntry {
 export interface InstitutionalNotes {
   reviewerNotes: string;
   generalNotes: string;
+  aiInvolvement?: string;
+  risksConcerns?: string;
+  assumptions?: string;
 }
 
 export interface AppState {
