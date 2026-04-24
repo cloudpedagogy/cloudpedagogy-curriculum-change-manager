@@ -67,6 +67,13 @@ This helps ensure that change is:
 
 ---
 
+## Additional Documentation
+
+- [User Instructions](./INSTRUCTIONS.md)
+- [Project Specification](./PROJECT_SPEC.md)
+
+---
+
 ## Technical Overview
 
 - Built with TypeScript + Vite (React)  
