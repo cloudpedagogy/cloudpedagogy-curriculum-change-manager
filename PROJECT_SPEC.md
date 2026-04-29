@@ -67,3 +67,14 @@ Provides a "low-friction, high-transparency" bridge between design and governanc
 ## 15. Anything Unclear or Inferred from Repo Contents
 - **Evidence Pack Import**: While the README mentions "Evidence packs" as an upstream input, the current import logic in `VersionManagementCard.tsx` specifically detects assessment and integrity patterns.
 - **Versioning Logic**: The app assumes a linear or branching history managed by the user; there is no automated version numbering (e.g., v1.1.0) beyond the manual titles provided.
+
+---
+
+## Capability and Governance Alignment
+
+This tool is aligned with the CloudPedagogy Capability and Governance standard.
+
+- **Capability**: The tool supports development of practical AI capability through structured interaction and workflow use, specifically through reflective documentation of curriculum evolution.
+- **Governance**: The tool includes lightweight, optional fields that make assumptions, risks, and decisions visible and reviewable, ensuring accountability in the academic design process.
+
+This alignment ensures the tool supports both effective use of AI and responsible, accountable practice.

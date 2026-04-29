@@ -101,6 +101,9 @@ export const OutputSummaryCard: React.FC<OutputSummaryCardProps> = ({ state }) =
           {state.institutionalNotes.assumptions && (
             <p className="mb-xs"><strong>Assumptions:</strong> {state.institutionalNotes.assumptions}</p>
           )}
+          {state.institutionalNotes.capabilityNotes && (
+            <p className="mb-xs"><strong>Capability:</strong> {state.institutionalNotes.capabilityNotes}</p>
+          )}
           <p className="mb-0"><strong>Additional Notes:</strong> {state.institutionalNotes.generalNotes || 'None'}</p>
         </section>
       </div>

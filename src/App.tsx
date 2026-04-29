@@ -90,6 +90,33 @@ function App() {
           </div>
         </div>
 
+        {/* Lightweight capability and governance layer */}
+        {/* Optional, non-blocking, and does not alter core workflow */}
+        <div className="cp-card cp-hide-print" style={{ borderStyle: 'dashed', opacity: 0.8 }}>
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 'var(--font-size-meta)', padding: '4px 0' }}>
+              Capability & Governance Notes (Optional)
+            </summary>
+            <div className="mt-md">
+              <div className="form-group mb-0">
+                <label style={{ fontSize: 'var(--font-size-small)', textTransform: 'uppercase', letterSpacing: '0.025em', opacity: 0.7 }}>
+                  Capability Notes
+                </label>
+                <p className="text-muted" style={{ fontSize: 'var(--font-size-small)', marginBottom: '8px' }}>
+                  How does this institutional change process support responsible AI capability, professional judgement, or reflective practice?
+                </p>
+                <textarea 
+                  value={state.institutionalNotes.capabilityNotes || ''}
+                  onChange={(e) => updateState({ institutionalNotes: { ...state.institutionalNotes, capabilityNotes: e.target.value } })}
+                  placeholder="Record capability development observations..."
+                  rows={3}
+                  style={{ fontSize: 'var(--font-size-meta)', borderColor: '#ddd' }}
+                />
+              </div>
+            </div>
+          </details>
+        </div>
+
         <OutputSummaryCard state={state} />
 
       </main>

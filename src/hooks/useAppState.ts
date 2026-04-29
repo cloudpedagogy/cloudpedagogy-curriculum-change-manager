@@ -16,7 +16,8 @@ const defaultState: AppState = {
     generalNotes: '',
     aiInvolvement: '',
     risksConcerns: '',
-    assumptions: ''
+    assumptions: '',
+    capabilityNotes: ''
   },
   lastUpdated: new Date().toISOString()
 };
@@ -68,7 +69,8 @@ const demoState: AppState = {
     "generalNotes": "Demo data should remain editable",
     "aiInvolvement": "AI was used to summarize student feedback on the original assessment design to identify pain points.",
     "risksConcerns": "Risk of AI-generated content being indistinguishable from student work if guidance is too permissive.",
-    "assumptions": "Assumes students have basic AI literacy and understand the difference between assistive and generative use."
+    "assumptions": "Assumes students have basic AI literacy and understand the difference between assistive and generative use.",
+    "capabilityNotes": "This tool supports capability by enabling educators to reflect on how curriculum changes impact AI integrity and professional judgement."
   },
   "lastUpdated": new Date().toISOString()
 };

@@ -38,6 +38,7 @@ export interface InstitutionalNotes {
   aiInvolvement?: string;
   risksConcerns?: string;
   assumptions?: string;
+  capabilityNotes?: string;
 }
 
 export interface AppState {

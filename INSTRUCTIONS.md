@@ -72,3 +72,22 @@ This tool helps you manage multiple versions of your educational designs (e.g., 
 - **Be Descriptive:** When importing a version, give it a clear title like "2023 Post-Exam Review" to make comparisons easier.
 - **Focus on Rationale:** The "Rationale" field is critical for auditors; explain *why* a change was necessary (e.g., "Reflecting new AI policy guidance").
 - **Local Persistence:** Your work is saved in your browser's `localStorage`. Use the "Export JSON" button in the header frequently to keep a permanent file-based backup of your progress.
+
+---
+
+## Capability and Governance Alignment
+
+### What the tool does
+The Curriculum Change Manager provides a structured environment for tracking and documenting changes to academic designs, specifically focusing on the rationale and impact of AI-related shifts.
+
+### How capability is developed through use
+Capability is developed by forcing explicit reflection on why changes are being made and how they align with pedagogical goals. The optional Capability Notes encourage users to consider how institutional processes support professional judgement and reflective practice.
+
+### How governance is supported
+Governance is supported through dedicated fields for:
+- **AI Involvement**: Transparency on how AI was used in the design process.
+- **Assumptions**: Making underlying beliefs explicit.
+- **Risks / Concerns**: Identifying potential issues early.
+- **Capability Notes**: Reflecting on the development of institutional AI literacy.
+
+These fields ensure that curriculum changes are not only tracked but also justified and risk-aware, providing an audit-ready trail for QA committees.
