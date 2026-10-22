@@ -320,7 +320,7 @@ export function createNewProposal(
     ref,
     title: initial?.title !== undefined ? initial.title : 'Untitled Curriculum Change Proposal',
     category: initial?.category || 'minor_amendment',
-    status: 'draft',
+    status: initial?.status || 'draft',
     rationale: initial?.rationale || '',
     currentSituation: initial?.currentSituation || '',
     proposedChange: initial?.proposedChange || '',
@@ -355,13 +355,15 @@ export function createNewProposal(
     decisions: initial?.decisions || [],
     implementationActions: initial?.implementationActions || [],
     closure: initial?.closure || undefined,
-    events: [
-      createGovernanceEvent(
-        'proposal_created',
-        ownerName || 'Proposer',
-        `Curriculum change proposal ${ref} created in draft status`,
-        { ref }
-      ),
-    ],
+    events: initial?.events && initial.events.length > 0
+      ? initial.events
+      : [
+          createGovernanceEvent(
+            'proposal_created',
+            ownerName || 'Proposer',
+            `Curriculum change proposal ${ref} created in draft status`,
+            { ref }
+          ),
+        ],
   };
 }

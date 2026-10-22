@@ -216,6 +216,47 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
 
   const statusInfo = STATUS_GUIDANCE[proposal.status] || STATUS_GUIDANCE.draft;
 
+  const PHASES = [
+    {
+      id: 'phase_design',
+      title: 'Phase 1: Proposal Design & Content',
+      stageIndices: [0, 1, 2, 3],
+    },
+    {
+      id: 'phase_governance',
+      title: 'Phase 2: Governance & Decision',
+      stageIndices: [4, 5, 6],
+    },
+    {
+      id: 'phase_audit',
+      title: 'Phase 3: Assurance & Records',
+      stageIndices: [7, 8, 9],
+    },
+  ];
+
+  const handleTabKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let newIndex = index;
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      newIndex = (index + 1) % tabs.length;
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      newIndex = (index - 1 + tabs.length) % tabs.length;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      newIndex = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      newIndex = tabs.length - 1;
+    }
+    if (newIndex !== index) {
+      const nextTab = tabs[newIndex];
+      setActiveTab(nextTab.id);
+      const el = document.getElementById(`tab-${nextTab.id}`);
+      el?.focus();
+    }
+  };
+
   return (
     <div className="proposal-editor-container" data-testid="proposal-editor">
       {/* Proposal Header Banner */}
@@ -313,20 +354,64 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
           </button>
         </div>
 
-        {/* Tab Navigation Bar */}
+        {/* Phase Grouping Strip */}
         <div
-          className="flex gap-xs mt-md"
+          className="flex items-center gap-xs mt-md mb-xs flex-wrap"
           style={{
             borderTop: '1px solid var(--color-border-default)',
             paddingTop: 'var(--spacing-sm)',
-            overflowX: 'auto',
+            fontSize: '0.8rem',
           }}
         >
-          {tabs.map((tab) => {
+          <span className="text-muted" style={{ fontWeight: 600, marginRight: '4px' }}>
+            Workflow Phases:
+          </span>
+          {PHASES.map((phase) => {
+            const isPhaseActive = phase.stageIndices.includes(currentTabIndex);
+            return (
+              <button
+                key={phase.id}
+                type="button"
+                onClick={() => setActiveTab(tabs[phase.stageIndices[0]].id)}
+                style={{
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '3px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: isPhaseActive ? 700 : 500,
+                  backgroundColor: isPhaseActive ? '#e0f2fe' : '#f8fafc',
+                  color: isPhaseActive ? '#0369a1' : '#64748b',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
+                }}
+              >
+                {phase.title}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Desktop Tab Navigation Bar with ARIA tablist */}
+        <div
+          role="tablist"
+          aria-label="Curriculum change authoring stages"
+          className="desktop-stage-nav gap-xs"
+          style={{
+            overflowX: 'auto',
+            paddingBottom: '4px',
+          }}
+        >
+          {tabs.map((tab, idx) => {
             const isSelected = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                id={`tab-${tab.id}`}
+                role="tab"
+                aria-selected={isSelected}
+                aria-controls={`tabpanel-${tab.id}`}
+                tabIndex={isSelected ? 0 : -1}
+                onKeyDown={(e) => handleTabKeyDown(e, idx)}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 style={{
@@ -366,7 +451,80 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
             );
           })}
         </div>
+
+        {/* Mobile & Tablet Compact Stage Dropdown */}
+        <div className="mobile-stage-selector cp-hide-print mt-sm" style={{ flexDirection: 'column', gap: '8px' }}>
+          <div className="flex justify-between items-center">
+            <label htmlFor="mobile-stage-dropdown" className="semibold text-small">
+              Stage {currentTabIndex + 1} of {tabs.length}:
+            </label>
+            <div className="flex gap-xs">
+              <button
+                type="button"
+                className="cp-button-secondary"
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+                onClick={goToPrevTab}
+                disabled={currentTabIndex === 0}
+                aria-label="Previous authoring stage"
+              >
+                <ArrowLeft size={14} /> Prev
+              </button>
+              <button
+                type="button"
+                className="cp-button-primary"
+                style={{ padding: '4px 8px', fontSize: '12px' }}
+                onClick={goToNextTab}
+                disabled={currentTabIndex === tabs.length - 1}
+                aria-label="Next authoring stage"
+              >
+                Next <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+          <select
+            id="mobile-stage-dropdown"
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as EditorTab)}
+            style={{ fontWeight: 600, padding: '8px 10px', width: '100%' }}
+            aria-label="Select authoring stage"
+          >
+            {PHASES.map((phase) => (
+              <optgroup key={phase.id} label={phase.title}>
+                {phase.stageIndices.map((idx) => {
+                  const t = tabs[idx];
+                  const shortTitles: Record<EditorTab, string> = {
+                    basics: 'Stage 1: Proposal Information',
+                    context: 'Stage 2: Context & Environment',
+                    rationale: 'Stage 3: Modification & Rationale',
+                    versions: 'Stage 4: Version Snapshots & Diff',
+                    impact: 'Stage 5: Educational Impact Assessment',
+                    governance: 'Stage 6: Review Findings & Decisions',
+                    implementation: 'Stage 7: Implementation Action Tracker',
+                    notes: 'Stage 8: Institutional & Capability Notes',
+                    history: 'Stage 9: Governance Event Audit Trail',
+                    summary: 'Stage 10: Governance Dossier & Summary',
+                  };
+                  return (
+                    <option key={t.id} value={t.id}>
+                      {shortTitles[t.id]} {t.badge !== undefined && Number(t.badge) > 0 ? `(${t.badge})` : ''}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Accessible Tabpanel container */}
+      <div
+        role="tabpanel"
+        id={`tabpanel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+        tabIndex={0}
+        style={{ outline: 'none' }}
+      >
+
 
       {/* Tab 1: Basic Details */}
       {activeTab === 'basics' && (
@@ -839,6 +997,7 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

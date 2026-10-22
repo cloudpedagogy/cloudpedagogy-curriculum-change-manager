@@ -1,93 +1,80 @@
-# Curriculum Change Manager — User Instructions
+# CloudPedagogy Curriculum Change Manager — User Instructions
+
+A comprehensive guide for academic programme directors, module convenors, quality officers, and educational designers using the standalone Curriculum Change Manager (CCM).
 
 ---
 
-### 1. Purpose
-The **Curriculum Change Manager** is a local-first tool designed to track, compare, and document the evolution of curriculum and assessment designs over time. It ensures that changes are transparent, justified, and audit-ready.
+## 1. Quick Start Guide
+
+### Step 1: Open the Application
+When you launch CCM, it opens to a blank workspace. You have three choices:
+- **Create Blank Proposal:** Start authoring a new proposal immediately.
+- **Load Demo Proposals:** Load two realistic curriculum change examples to familiarise yourself with the interface.
+- **Import JSON Workspace:** Upload a previously saved `.json` file backup.
+
+### Step 2: Set Proposal Metadata & Curriculum Context
+1. Select your proposal from the **Proposals Catalogue**.
+2. Under **Stage 1 (Basic Details)**, enter your proposal title, change category (e.g. Major Modification, Assessment Restructuring), proposer name, and institutional role.
+3. Under **Stage 2 (Curriculum Context)**, record the programme name, module title, academic level, and department/faculty.
+
+### Step 3: Document Proposed Change & Educational Rationale
+Navigate to **Stage 3 (Change & Rationale)** to articulate:
+- The exact changes to module content, assessment, or delivery mode.
+- The pedagogical rationale driving the change (e.g. alignment with updated QAA subject benchmark statements or industry requirements).
+- Expected student learning benefits and affected components.
+
+### Step 4: Attach Version Snapshots & Compare
+Under **Stage 4 (Snapshots & Log)**:
+- Import version snapshot JSON files or create manual version snapshots representing the baseline and proposed designs.
+- Select the **Version Comparison** inspector to review side-by-side differences. The generic comparison engine highlights additions (green), removals (red), and modifications (amber), with readable curriculum breadcrumb labels.
+- Record discrete change log entries explaining specific adjustments.
+
+### Step 5: Complete the Educational Impact Assessment
+Navigate to **Stage 5 (Educational Impact)**. Evaluate the implications across the six standard dimensions:
+1. *Learning Outcomes & Curriculum Alignment*
+2. *Assessment Design & Academic Standards*
+3. *Student Progression & Prerequisites*
+4. *Teaching Delivery & Learning Resources*
+5. *Staff Workload & Implementation Feasibility*
+6. *Accessibility, Inclusion & Student Experience*
+
+Assign an impact level (`None`, `Low`, `Moderate`, `High`), provide supporting evidence, and record any mitigating actions. Add an overall pedagogical synthesis.
+
+### Step 6: Submit for Review & Record Decisions
+1. In the guidance banner or **Stage 6 (Review & Decisions)**, click **Submit for Review**.
+2. Record peer or committee reviewer findings, recommendations, and conditions.
+3. Once the Board of Studies or Academic Committee convenes, record the formal outcome (`Approved`, `Rejected`, or `Returned for Revision`) with recorded rationales and conditions.
+
+### Step 7: Manage Implementation Actions & Verify Closure
+Navigate to **Stage 7 (Implementation Plan)**:
+- Add concrete rollout tasks with assignees and target completion dates.
+- Update task statuses as operational milestones are reached.
+- Once all actions are complete, record the final verification sign-off and close the proposal.
+
+### Step 8: Generate and Export the Governance Dossier
+Under **Stage 10 (Output Summary)**:
+- Inspect the **Audit Completeness Notice** to ensure no essential governance details were overlooked.
+- Review the automatically embedded snapshot comparison summary.
+- Click **Copy Text** to copy the full dossier formatted in clean Markdown to your clipboard.
+- Click **Print Report** (or press Ctrl+P / Cmd+P) to generate a clean, paginated PDF report.
 
 ---
 
-### 2. What This Tool Does
-This tool helps you manage multiple versions of your educational designs (e.g., assessments, AI integrity policies). It allows you to perform side-by-side comparisons of different versions, record the specific rationale for changes, and generate structured summaries suitable for Quality Assurance (QA) and institutional governance reviews.
+## 2. Managing Your Local Workspace
+
+### Local Storage & Backup Safeguards
+- CCM stores all records directly in your browser's `localStorage`.
+- No user data is sent across the network or stored in external databases.
+- If storage limits are reached, CCM presents a **Storage Persistence Warning** banner with an immediate **Export Backup JSON** option.
+- **Best Practice:** Regularly export your workspace via the **Export** button in the top navigation bar to save an authoritative file on your institutional drive.
+
+### Importing and Restoring Data
+- Click **Import** in the header to restore a `.json` backup.
+- CCM validates file structure and schema version before replacing your active workspace.
+- Invalid or corrupted files will be safely rejected without overwriting your current data.
 
 ---
 
-### 3. Role in the Ecosystem
-- **Phase:** Phase 6 — Evidence, Quality & Change
-- **Role:** Tracks curriculum and assessment changes over time, enabling structured comparison, rationale capture, and audit-ready change documentation.
-- **Reference:** [./PROJECT_SPEC.md](./PROJECT_SPEC.md)
+## 3. Governance Notice & Institutional Limitations
 
----
-
-### 4. When to Use This Tool
-- When preparing for a periodic programme or module review.
-- When documenting assessment modifications required by external accreditation bodies.
-- When evolving AI integrity guidelines and policies within a module.
-- When you need to provide a clear "change log" to a QA committee or board of examiners.
-
----
-
-### 5. Inputs
-- **Project Metadata:** Programme name, module name, level, and department.
-- **Snapshots:** JSON export files from the **Assessment Design Engine** or **AI Integrity Design Tool**.
-- **Manual Entries:** Custom version descriptions and content for changes not captured by other tools.
-- **Change Rationale:** Narrative descriptions of why changes were made and their expected impact.
-
----
-
-### 6. How to Use (Step-by-Step)
-1. **Set Context:** Fill in the **Change Context** section with the relevant programme and module details.
-2. **Add Versions:** Use the **Version Management** card to:
-   - Click "Import Snapshot JSON" to load designs from other CloudPedagogy tools.
-   - Click "Add Manual Version" to record changes that weren't generated via JSON snapshots.
-3. **Compare Designs:** In the **Version Comparison** section, select two different versions to see their contents side-by-side and identify key differences.
-4. **Log Changes:** Use the **Change Log** section to record specific modifications. For each entry, provide a summary, the rationale (why), and the impact (what happened as a result).
-5. **Add Governance Notes:** Complete the **Institutional Approval & Notes** section, specifically addressing AI involvement, risks, and assumptions made during the change process.
-6. **Generate Report:** Review the **Output Summary** at the bottom of the page. Use your browser's print function (Cmd+P or Ctrl+P) to save this as a PDF for your records or submission.
-
----
-
-### 7. Key Outputs
-- **Structured Change Log:** A clear timeline of what changed, why, and what the impact was.
-- **Comparison Views:** Visual side-by-side analysis of design versions.
-- **Audit-Ready Report:** A comprehensive summary including metadata, version history, change log, and institutional notes.
-- **Project JSON:** A full export of your current work state for backup or sharing.
-
----
-
-### 8. How It Connects to Other Tools
-- **Upstream:** Consumes JSON snapshots from the **Assessment Design Engine** and **AI Integrity Design Tool**.
-- **Downstream:** Outputs summaries for **Institutional QA processes**, **Accreditation dossiers**, and **External Examiner reviews**.
-
----
-
-### 9. Limitations
-- Does not create new curriculum or assessment designs from scratch (use the specific design engines for this).
-- Does not perform automated curriculum mapping.
-- Does not generate full evidence packs (use the **Evidence Pack Generator** for comprehensive evidence gathering).
-
----
-
-### 10. Tips
-- **Be Descriptive:** When importing a version, give it a clear title like "2023 Post-Exam Review" to make comparisons easier.
-- **Focus on Rationale:** The "Rationale" field is critical for auditors; explain *why* a change was necessary (e.g., "Reflecting new AI policy guidance").
-- **Local Persistence:** Your work is saved in your browser's `localStorage`. Use the "Export JSON" button in the header frequently to keep a permanent file-based backup of your progress.
-
----
-
-## Capability and Governance Alignment
-
-### What the tool does
-The Curriculum Change Manager provides a structured environment for tracking and documenting changes to academic designs, specifically focusing on the rationale and impact of AI-related shifts.
-
-### How capability is developed through use
-Capability is developed by forcing explicit reflection on why changes are being made and how they align with pedagogical goals. The optional Capability Notes encourage users to consider how institutional processes support professional judgement and reflective practice.
-
-### How governance is supported
-Governance is supported through dedicated fields for:
-- **AI Involvement**: Transparency on how AI was used in the design process.
-- **Assumptions**: Making underlying beliefs explicit.
-- **Risks / Concerns**: Identifying potential issues early.
-- **Capability Notes**: Reflecting on the development of institutional AI literacy.
-
-These fields ensure that curriculum changes are not only tracked but also justified and risk-aware, providing an audit-ready trail for QA committees.
+> **Governance Notice:** CCM is designed to support structured reflection, pedagogical rationale capture, and local audit readiness. Recording an approval decision in CCM records what occurred in committee but **does not replace formal institutional sign-off or confer independent statutory authority**. Formal curriculum validity requires adherence to your institution's specific governance procedures.

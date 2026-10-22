@@ -56,14 +56,29 @@ export function useAppState() {
     return createEmptyRepository();
   });
 
+  const [storageWarning, setStorageWarning] = useState<string | null>(null);
+
   // Sync to localStorage whenever repository changes
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(repository));
+      if (storageWarning) {
+        setTimeout(() => setStorageWarning(null), 0);
+      }
     } catch (e) {
       console.error('Failed to persist repository state to localStorage:', e);
+      const errMessage =
+        e instanceof Error && e.name === 'QuotaExceededError'
+          ? 'Browser storage quota exceeded. Changes cannot be saved locally. Please export your workspace JSON as a backup to prevent data loss.'
+          : 'Browser local storage is unavailable or full. Changes will not persist after closing this window. Please export your workspace JSON as a backup.';
+      setTimeout(() => setStorageWarning(errMessage), 0);
     }
-  }, [repository]);
+  }, [repository, storageWarning]);
+
+  const dismissStorageWarning = useCallback(() => {
+    setStorageWarning(null);
+  }, []);
+
 
   // Derived active proposal
   const activeProposal = useMemo(() => {
@@ -751,5 +766,7 @@ export function useAppState() {
     deleteImplementationAction,
     verifyAndCloseProposal,
     reopenProposal,
+    storageWarning,
+    dismissStorageWarning,
   };
 }

@@ -248,19 +248,126 @@ textarea {
   background-color: #FAFAFA;
 }
 
-/* --- Print Styles --- */
-@media print {
-  body {
-    background-color: #FFFFFF;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  .cp-hide-print {
+/* --- Responsive Stage Navigation and Utilities --- */
+.mobile-stage-selector {
+  display: none;
+}
+
+.desktop-stage-nav {
+  display: flex;
+}
+
+@media (max-width: 840px) {
+  .desktop-stage-nav {
     display: none !important;
   }
+  .mobile-stage-selector {
+    display: flex !important;
+  }
+  .form-row {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* Accessible Tablist styling */
+[role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+[role="tab"] {
+  border: 1px solid transparent;
+  outline: none;
+}
+
+[role="tab"]:focus-visible {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}
+
+/* --- Print Styles --- */
+@media print {
+  @page {
+    margin: 15mm;
+    size: auto;
+  }
+
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 10.5pt;
+  }
+
+  .cp-hide-print,
+  button,
+  nav,
+  input,
+  select,
+  .mobile-stage-selector,
+  .desktop-stage-nav {
+    display: none !important;
+  }
+
+  .max-width-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   .cp-card {
-    box-shadow: none;
-    border: 1px solid #000;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .output-content {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .dossier-section {
     page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 20px;
+  }
+
+  .cp-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  .cp-table th,
+  .cp-table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    text-align: left;
+  }
+
+  .cp-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #000000 !important;
+  }
+
+  .badge {
+    border: 1px solid #94a3b8 !important;
+    color: #000000 !important;
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
