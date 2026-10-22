@@ -2,8 +2,10 @@ import type {
   ChangeProposal,
   LegacyAppState,
   RepositoryState,
+  RepositoryStateV1_0,
 } from '../types';
 import { generateProposalRef, generateUUID } from './idGenerator';
+import { createDefaultImpactAssessment, createGovernanceEvent } from './governance';
 
 /**
  * Checks if a data structure matches the legacy v0 single-record AppState
@@ -25,9 +27,9 @@ export function isLegacyState(data: unknown): data is LegacyAppState {
 }
 
 /**
- * Checks if a data structure is already a valid RepositoryState (v1.0.0)
+ * Checks if a data structure is a Batch 1 v1.0.0 RepositoryState
  */
-export function isRepositoryState(data: unknown): data is RepositoryState {
+export function isV1_0State(data: unknown): data is RepositoryStateV1_0 {
   if (!data || typeof data !== 'object') return false;
   const candidate = data as Record<string, unknown>;
 
@@ -38,7 +40,91 @@ export function isRepositoryState(data: unknown): data is RepositoryState {
 }
 
 /**
- * Safely converts a legacy single-module workspace into a valid v1.0.0 multi-proposal RepositoryState
+ * Checks if a data structure is already a valid v1.1.0 RepositoryState
+ */
+export function isRepositoryState(data: unknown): data is RepositoryState {
+  if (!data || typeof data !== 'object') return false;
+  const candidate = data as Record<string, unknown>;
+
+  return (
+    candidate.schemaVersion === '1.1.0' &&
+    Array.isArray(candidate.proposals)
+  );
+}
+
+/**
+ * Migrates a Batch 1 v1.0.0 repository into v1.1.0 by populating governance fields
+ */
+export function migrateV1_0ToV1_1(v1: RepositoryStateV1_0): RepositoryState {
+  const migratedProposals: ChangeProposal[] = v1.proposals.map((p) => {
+    const proposalId = p.id || generateUUID();
+    const createdAt = p.createdAt || new Date().toISOString();
+    const updatedAt = p.updatedAt || new Date().toISOString();
+
+    const existingEvents = Array.isArray(p.events) ? p.events : [];
+    const events =
+      existingEvents.length > 0
+        ? existingEvents
+        : [
+            createGovernanceEvent(
+              'proposal_created',
+              p.ownerName || 'Proposer',
+              'Proposal created (migrated from v1.0.0)',
+              { migratedFrom: '1.0.0' }
+            ),
+          ];
+
+    return {
+      id: proposalId,
+      ref: p.ref || 'CCP-MIGRATED',
+      title: p.title || 'Untitled Proposal',
+      category: p.category || 'minor_amendment',
+      status: p.status || 'draft',
+      rationale: p.rationale || '',
+      currentSituation: p.currentSituation || '',
+      proposedChange: p.proposedChange || '',
+      intendedBenefits: p.intendedBenefits || '',
+      affectedComponents: p.affectedComponents || '',
+      ownerName: p.ownerName || 'Unassigned',
+      ownerRole: p.ownerRole || '',
+      targetDate: p.targetDate || '',
+      createdAt,
+      updatedAt,
+      context: p.context || {
+        programmeName: '',
+        moduleName: '',
+        level: '',
+        department: '',
+      },
+      versions: Array.isArray(p.versions) ? p.versions : [],
+      changeLog: Array.isArray(p.changeLog) ? p.changeLog : [],
+      institutionalNotes: p.institutionalNotes || {
+        reviewerNotes: '',
+        generalNotes: '',
+      },
+      comparisons: Array.isArray(p.comparisons) ? p.comparisons : [],
+      // Batch 2 governance structures
+      impactAssessment: p.impactAssessment && typeof p.impactAssessment === 'object' && 'dimensions' in p.impactAssessment
+        ? (p.impactAssessment as unknown as ChangeProposal['impactAssessment'])
+        : createDefaultImpactAssessment(),
+      reviews: Array.isArray(p.reviews) ? p.reviews : [],
+      decisions: Array.isArray(p.decisions) ? p.decisions : [],
+      implementationActions: Array.isArray(p.implementationActions) ? p.implementationActions : [],
+      closure: p.closure || undefined,
+      events,
+    };
+  });
+
+  return {
+    schemaVersion: '1.1.0',
+    proposals: migratedProposals,
+    activeProposalId: v1.activeProposalId,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Safely converts a legacy single-module workspace into a valid v1.1.0 multi-proposal RepositoryState
  */
 export function migrateLegacyState(legacy: LegacyAppState): RepositoryState {
   const proposalId = generateUUID();
@@ -50,6 +136,8 @@ export function migrateLegacyState(legacy: LegacyAppState): RepositoryState {
 
   const firstChange = legacy.changeLog?.[0];
   const firstVersion = legacy.versions?.[0];
+  const createdAt = firstVersion?.createdAt || legacy.lastUpdated || new Date().toISOString();
+  const updatedAt = legacy.lastUpdated || new Date().toISOString();
 
   const migratedProposal: ChangeProposal = {
     id: proposalId,
@@ -68,8 +156,8 @@ export function migrateLegacyState(legacy: LegacyAppState): RepositoryState {
         : '',
     ownerName: 'Curriculum Lead',
     ownerRole: 'Module Leader',
-    createdAt: firstVersion?.createdAt || legacy.lastUpdated || new Date().toISOString(),
-    updatedAt: legacy.lastUpdated || new Date().toISOString(),
+    createdAt,
+    updatedAt,
     context: {
       programmeName: legacy.meta?.programmeName || '',
       moduleName: legacy.meta?.moduleName || '',
@@ -88,10 +176,24 @@ export function migrateLegacyState(legacy: LegacyAppState): RepositoryState {
       capabilityNotes: '',
     },
     comparisons: Array.isArray(legacy.comparisons) ? legacy.comparisons : [],
+    // Batch 2 governance structures
+    impactAssessment: createDefaultImpactAssessment(),
+    reviews: [],
+    decisions: [],
+    implementationActions: [],
+    closure: undefined,
+    events: [
+      createGovernanceEvent(
+        'proposal_created',
+        'Legacy System',
+        'Curriculum proposal migrated from legacy single-record workspace',
+        { source: 'v0_legacy' }
+      ),
+    ],
   };
 
   return {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     proposals: [migratedProposal],
     activeProposalId: proposalId,
     lastUpdated: new Date().toISOString(),
@@ -112,7 +214,7 @@ export function validateRepositoryState(data: unknown): {
     return { valid: false, errors: ['Invalid JSON: payload must be a non-null object.'] };
   }
 
-  // Check if legacy
+  // Check if legacy v0
   if (isLegacyState(data)) {
     return {
       valid: true,
@@ -121,10 +223,21 @@ export function validateRepositoryState(data: unknown): {
     };
   }
 
+  // Check if v1.0.0
+  if (isV1_0State(data)) {
+    return {
+      valid: true,
+      errors: [],
+      data: migrateV1_0ToV1_1(data),
+    };
+  }
+
   const candidate = data as Record<string, unknown>;
 
-  if (candidate.schemaVersion !== '1.0.0') {
-    errors.push(`Unsupported schemaVersion "${String(candidate.schemaVersion)}". Expected "1.0.0".`);
+  if (candidate.schemaVersion !== '1.1.0') {
+    errors.push(
+      `Unsupported schemaVersion "${String(candidate.schemaVersion)}". Expected "1.1.0" (or migratable "1.0.0").`
+    );
   }
 
   if (!Array.isArray(candidate.proposals)) {
@@ -158,10 +271,24 @@ export function validateRepositoryState(data: unknown): {
     return { valid: false, errors };
   }
 
+  // Ensure any optional governance fields have safe defaults
+  const validatedState = candidate as unknown as RepositoryState;
+  const sanitizedProposals = validatedState.proposals.map((p) => ({
+    ...p,
+    impactAssessment: p.impactAssessment || createDefaultImpactAssessment(),
+    reviews: Array.isArray(p.reviews) ? p.reviews : [],
+    decisions: Array.isArray(p.decisions) ? p.decisions : [],
+    implementationActions: Array.isArray(p.implementationActions) ? p.implementationActions : [],
+    events: Array.isArray(p.events) ? p.events : [],
+  }));
+
   return {
     valid: true,
     errors: [],
-    data: data as RepositoryState,
+    data: {
+      ...validatedState,
+      proposals: sanitizedProposals,
+    },
   };
 }
 
@@ -170,7 +297,7 @@ export function validateRepositoryState(data: unknown): {
  */
 export function createEmptyRepository(): RepositoryState {
   return {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     proposals: [],
     activeProposalId: null,
     lastUpdated: new Date().toISOString(),
@@ -185,10 +312,13 @@ export function createNewProposal(
   initial?: Partial<ChangeProposal>
 ): ChangeProposal {
   const now = new Date().toISOString();
+  const ownerName = initial?.ownerName || '';
+  const ref = generateProposalRef(existingProposals);
+
   return {
     id: generateUUID(),
-    ref: generateProposalRef(existingProposals),
-    title: initial?.title || 'Untitled Curriculum Change Proposal',
+    ref,
+    title: initial?.title !== undefined ? initial.title : 'Untitled Curriculum Change Proposal',
     category: initial?.category || 'minor_amendment',
     status: 'draft',
     rationale: initial?.rationale || '',
@@ -196,7 +326,7 @@ export function createNewProposal(
     proposedChange: initial?.proposedChange || '',
     intendedBenefits: initial?.intendedBenefits || '',
     affectedComponents: initial?.affectedComponents || '',
-    ownerName: initial?.ownerName || '',
+    ownerName,
     ownerRole: initial?.ownerRole || '',
     targetDate: initial?.targetDate || '',
     createdAt: now,
@@ -219,5 +349,19 @@ export function createNewProposal(
       capabilityNotes: '',
     },
     comparisons: initial?.comparisons || [],
+    // Batch 2 governance structures
+    impactAssessment: initial?.impactAssessment || createDefaultImpactAssessment(),
+    reviews: initial?.reviews || [],
+    decisions: initial?.decisions || [],
+    implementationActions: initial?.implementationActions || [],
+    closure: initial?.closure || undefined,
+    events: [
+      createGovernanceEvent(
+        'proposal_created',
+        ownerName || 'Proposer',
+        `Curriculum change proposal ${ref} created in draft status`,
+        { ref }
+      ),
+    ],
   };
 }

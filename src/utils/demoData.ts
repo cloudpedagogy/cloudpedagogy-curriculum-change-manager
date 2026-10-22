@@ -1,4 +1,5 @@
 import type { ChangeProposal, RepositoryState } from '../types';
+import { createGovernanceEvent } from './governance';
 
 export const DEMO_PROPOSALS: ChangeProposal[] = [
   {
@@ -6,7 +7,7 @@ export const DEMO_PROPOSALS: ChangeProposal[] = [
     ref: 'CCP-2026-001',
     title: 'Public Health Policy Analysis — AI Integrity Redesign',
     category: 'ai_guidance_update',
-    status: 'draft',
+    status: 'approved',
     rationale:
       'Increased uptake of generative AI across postgraduate essays requires clear academic integrity boundaries without prohibiting responsible research use.',
     currentSituation:
@@ -76,7 +77,7 @@ export const DEMO_PROPOSALS: ChangeProposal[] = [
       },
     ],
     institutionalNotes: {
-      reviewerNotes: 'Approved in principle by Programme Committee. Awaiting faculty Board of Studies sign-off.',
+      reviewerNotes: 'Approved in principle by Programme Committee. Board of Studies sign-off completed.',
       generalNotes: 'Collaborative initiative with Institutional Academic Integrity Office.',
       aiInvolvement:
         'AI was used to summarize student feedback on the original assessment design to identify recurring pain points.',
@@ -88,6 +89,122 @@ export const DEMO_PROPOSALS: ChangeProposal[] = [
         'Supports educator capability by demonstrating structured reflection on assessment validity in the generative AI era.',
     },
     comparisons: [],
+    // Batch 2 Governance Data
+    impactAssessment: {
+      dimensions: {
+        learningOutcomes: {
+          key: 'learningOutcomes',
+          title: 'Learning Outcomes & Curriculum Alignment',
+          impactLevel: 'moderate',
+          rationale: 'Reinforces LO3 (methodological transparency) without changing core competencies.',
+          evidence: 'Updated curriculum alignment matrix in syllabus appendix.',
+          mitigation: 'Include exemplary policy briefs with transparent citation.',
+        },
+        assessmentDesign: {
+          key: 'assessmentDesign',
+          title: 'Assessment Design & Academic Standards',
+          impactLevel: 'high',
+          rationale: 'Introduces a compulsory AI declaration appendix and split portfolio model.',
+          evidence: 'Student consultation and Academic Integrity Working Group review.',
+          mitigation: 'Provide grading criteria calibration session for all markers.',
+        },
+        studentProgression: {
+          key: 'studentProgression',
+          title: 'Student Progression & Prerequisites',
+          impactLevel: 'none',
+          rationale: 'Does not alter module prerequisites, credits (20 CATS), or progression hurdles.',
+          evidence: 'Registry programme specifications confirm credit parity.',
+          mitigation: '',
+        },
+        teachingDelivery: {
+          key: 'teachingDelivery',
+          title: 'Teaching Delivery & Learning Resources',
+          impactLevel: 'low',
+          rationale: 'Requires dedicated 1-hour workshop on acceptable assistive AI use during seminars.',
+          evidence: 'VLE teaching materials updated for week 3.',
+          mitigation: 'Record workshop for asynchronous student access.',
+        },
+        staffWorkload: {
+          key: 'staffWorkload',
+          title: 'Staff Workload & Implementation Feasibility',
+          impactLevel: 'low',
+          rationale: 'Slightly higher initial marking time per paper, mitigated by standardised declaration form.',
+          evidence: 'Pilot marking test showed ~4 minutes additional review per submission.',
+          mitigation: 'Provide rubric checklist template for markers.',
+        },
+        accessibilityInclusion: {
+          key: 'accessibilityInclusion',
+          title: 'Accessibility, Inclusion & Student Experience',
+          impactLevel: 'moderate',
+          rationale: 'Clear permission boundaries benefit students with diverse language backgrounds and neurodivergent learners.',
+          evidence: 'Disability advisory service reviewed guidance language for plain English clarity.',
+          mitigation: 'Produce multi-modal guidance (text + short infographic video).',
+        },
+      },
+      overallNotes: 'Assessment reflects balanced pedagogical judgement supporting AI literacy without undermining academic rigor.',
+      lastAssessedAt: '2026-02-05T11:00:00.000Z',
+    },
+    reviews: [
+      {
+        id: 'rev_demo_01',
+        reviewerName: 'Prof. Alistair Finch',
+        reviewerRole: 'Faculty Quality Assurance Officer',
+        reviewDate: '2026-02-10',
+        findings: 'The proposed 3-tier framework aligns well with institutional policy. The assessment split reduces reliance on unmonitored essays.',
+        recommendations: 'Recommend approval subject to sample declaration forms being published on the module VLE page.',
+        revisionRequests: '',
+        conditions: 'Ensure sample declaration forms and marking rubric calibration notes are distributed to external examiners.',
+      },
+    ],
+    decisions: [
+      {
+        id: 'dec_demo_01',
+        outcome: 'approved',
+        decisionMaker: 'Faculty Board of Studies',
+        decisionDate: '2026-02-15',
+        decisionRationale: 'Proposal strengthens academic integrity while scaffolding authentic student capability. Pedagogical rationale and impact mitigations are robust.',
+        conditions: 'Approved subject to sharing the induction workshop materials with external examiners.',
+        targetSnapshotId: 'ver_demo_02',
+      },
+    ],
+    implementationActions: [
+      {
+        id: 'act_demo_01',
+        title: 'Publish updated module specification and 3-tier AI declaration template on VLE',
+        assignee: 'Dr. Eleanor Vance',
+        dueDate: '2026-03-01',
+        status: 'completed',
+        notes: 'Template and guidance uploaded to module handbook.',
+        completionEvidence: 'Handbook v2.1 uploaded to Moodle.',
+        completedAt: '2026-02-28',
+      },
+      {
+        id: 'act_demo_02',
+        title: 'Conduct marker calibration briefing for seminar leaders and graders',
+        assignee: 'Dr. Eleanor Vance',
+        dueDate: '2026-04-15',
+        status: 'in_progress',
+        notes: 'Briefing slides drafted; scheduled for departmental meeting in April.',
+      },
+      {
+        id: 'act_demo_03',
+        title: 'Schedule student AI literacy induction workshop for Autumn term intake',
+        assignee: 'Academic Integrity Office',
+        dueDate: '2026-08-20',
+        status: 'not_started',
+        notes: 'Awaiting timetable slot confirmation from Central Registry.',
+      },
+    ],
+    events: [
+      createGovernanceEvent('proposal_created', 'Dr. Eleanor Vance', 'Proposal created in draft status'),
+      createGovernanceEvent('proposal_submitted', 'Dr. Eleanor Vance', 'Proposal submitted for academic QA scrutiny'),
+      createGovernanceEvent('under_review', 'QA Committee', 'Assigned to Prof. Alistair Finch for formal review'),
+      createGovernanceEvent('review_recorded', 'Prof. Alistair Finch', 'Formal QA review recorded with recommendation to approve'),
+      createGovernanceEvent('decision_recorded', 'Faculty Board of Studies', 'Formal decision recorded: APPROVED with conditions'),
+      createGovernanceEvent('proposal_approved', 'Faculty Board of Studies', 'Proposal status transitioned to APPROVED'),
+      createGovernanceEvent('action_added', 'Dr. Eleanor Vance', 'Action added: Publish updated module specification'),
+      createGovernanceEvent('action_completed', 'Dr. Eleanor Vance', 'Action completed: Publish updated module specification'),
+    ],
   },
   {
     id: 'demo-proposal-002',
@@ -165,12 +282,65 @@ export const DEMO_PROPOSALS: ChangeProposal[] = [
       capabilityNotes: 'Fosters team-wide assessment design capability and authentic evaluation.',
     },
     comparisons: [],
+    // Batch 2 Governance Data - Draft stage with initial impact assessment
+    impactAssessment: {
+      dimensions: {
+        learningOutcomes: {
+          key: 'learningOutcomes',
+          title: 'Learning Outcomes & Curriculum Alignment',
+          impactLevel: 'high',
+          rationale: 'Substantially elevates software reproducibility and technical communication competencies.',
+          evidence: 'BCS accreditation guidelines 2025/26.',
+        },
+        assessmentDesign: {
+          key: 'assessmentDesign',
+          title: 'Assessment Design & Academic Standards',
+          impactLevel: 'high',
+          rationale: 'Complete shift from written exam to 3-part authentic portfolio and viva.',
+          evidence: 'External examiner report 2024/25.',
+        },
+        studentProgression: {
+          key: 'studentProgression',
+          title: 'Student Progression & Prerequisites',
+          impactLevel: 'low',
+          rationale: 'Prerequisites remain CS-201 and CS-204; passing grade threshold unchanged.',
+        },
+        teachingDelivery: {
+          key: 'teachingDelivery',
+          title: 'Teaching Delivery & Learning Resources',
+          impactLevel: 'moderate',
+          rationale: 'Requires dedicated GitLab CI runner servers for automated code testing.',
+          mitigation: 'Book cloud compute allocation from faculty IT pool.',
+        },
+        staffWorkload: {
+          key: 'staffWorkload',
+          title: 'Staff Workload & Implementation Feasibility',
+          impactLevel: 'moderate',
+          rationale: 'Vivas require ~30 hours staff commitment over 1 week; compensated by elimination of exam marking.',
+          mitigation: 'Pair academic staff with post-doctoral teaching fellows for viva panels.',
+        },
+        accessibilityInclusion: {
+          key: 'accessibilityInclusion',
+          title: 'Accessibility, Inclusion & Student Experience',
+          impactLevel: 'low',
+          rationale: 'Alternative viva arrangements (remote or written defense) available for students with anxiety adjustments.',
+        },
+      },
+      overallNotes: 'Draft assessment in progress; awaiting feedback from student representatives.',
+      lastAssessedAt: '2026-03-05T14:00:00.000Z',
+    },
+    reviews: [],
+    decisions: [],
+    implementationActions: [],
+    events: [
+      createGovernanceEvent('proposal_created', 'Prof. Marcus Thorne', 'Proposal created in draft status'),
+    ],
   },
 ];
 
 export function createDemoRepository(): RepositoryState {
   return {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     proposals: DEMO_PROPOSALS,
     activeProposalId: DEMO_PROPOSALS[0].id,
     lastUpdated: new Date().toISOString(),

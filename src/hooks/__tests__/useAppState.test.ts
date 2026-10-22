@@ -13,7 +13,7 @@ describe('useAppState Multi-Proposal Repository Hook', () => {
 
     expect(result.current.repository.proposals).toHaveLength(0);
     expect(result.current.activeProposal).toBeNull();
-    expect(result.current.repository.schemaVersion).toBe('1.0.0');
+    expect(result.current.repository.schemaVersion).toBe('1.1.0');
   });
 
   it('allows creating a new proposal and automatically sets it as active', () => {

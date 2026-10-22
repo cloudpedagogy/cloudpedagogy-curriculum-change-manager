@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
   isLegacyState,
+  isV1_0State,
   isRepositoryState,
   migrateLegacyState,
+  migrateV1_0ToV1_1,
   validateRepositoryState,
   createEmptyRepository,
   createNewProposal,
 } from '../migration';
-import type { LegacyAppState, RepositoryState } from '../../types';
+import type { LegacyAppState, RepositoryState, RepositoryStateV1_0 } from '../../types';
+import { createDefaultImpactAssessment } from '../governance';
 
 describe('Legacy State Detection and Migration', () => {
   const sampleLegacyState: LegacyAppState = {
@@ -57,10 +60,10 @@ describe('Legacy State Detection and Migration', () => {
     expect(isRepositoryState(sampleLegacyState)).toBe(false);
   });
 
-  it('safely migrates legacy state to v1.0.0 repository', () => {
+  it('safely migrates legacy state to v1.1.0 repository with default governance structures', () => {
     const migrated = migrateLegacyState(sampleLegacyState);
 
-    expect(migrated.schemaVersion).toBe('1.0.0');
+    expect(migrated.schemaVersion).toBe('1.1.0');
     expect(migrated.proposals).toHaveLength(1);
 
     const proposal = migrated.proposals[0];
@@ -74,9 +77,18 @@ describe('Legacy State Detection and Migration', () => {
     expect(proposal.changeLog[0].changeSummary).toBe('Introduced explicit AI integrity guidance');
     expect(proposal.status).toBe('draft');
     expect(migrated.activeProposalId).toBe(proposal.id);
+
+    // Batch 2 governance structures
+    expect(proposal.impactAssessment).toBeDefined();
+    expect(Object.keys(proposal.impactAssessment.dimensions)).toHaveLength(6);
+    expect(proposal.reviews).toEqual([]);
+    expect(proposal.decisions).toEqual([]);
+    expect(proposal.implementationActions).toEqual([]);
+    expect(proposal.events.length).toBeGreaterThanOrEqual(1);
+    expect(proposal.events[0].eventType).toBe('proposal_created');
   });
 
-  it('maintains migration idempotence', () => {
+  it('maintains migration idempotence for legacy states', () => {
     const migrated = migrateLegacyState(sampleLegacyState);
     expect(isRepositoryState(migrated)).toBe(true);
     expect(isLegacyState(migrated)).toBe(false);
@@ -89,24 +101,100 @@ describe('Legacy State Detection and Migration', () => {
 
   it('handles empty repository creation with blank-first behavior', () => {
     const empty = createEmptyRepository();
-    expect(empty.schemaVersion).toBe('1.0.0');
+    expect(empty.schemaVersion).toBe('1.1.0');
     expect(empty.proposals).toHaveLength(0);
     expect(empty.activeProposalId).toBeNull();
   });
 
-  it('creates new proposals with sequential reference IDs', () => {
+  it('creates new proposals with sequential reference IDs and initial governance state', () => {
     const p1 = createNewProposal([], { title: 'First Proposal' });
     expect(p1.ref).toMatch(/^CCP-\d{4}-001$/);
+    expect(p1.impactAssessment).toBeDefined();
+    expect(p1.events).toHaveLength(1);
+    expect(p1.events[0].eventType).toBe('proposal_created');
 
     const p2 = createNewProposal([p1], { title: 'Second Proposal' });
     expect(p2.ref).toMatch(/^CCP-\d{4}-002$/);
   });
 });
 
+describe('Batch 1 v1.0.0 Migration to Batch 2 v1.1.0', () => {
+  const sampleV1_0State: RepositoryStateV1_0 = {
+    schemaVersion: '1.0.0',
+    proposals: [
+      {
+        id: 'prop-v1-001',
+        ref: 'CCP-2026-001',
+        title: 'Batch 1 Proposal Title',
+        category: 'minor_amendment',
+        status: 'draft',
+        rationale: 'Rationale from v1.0',
+        currentSituation: 'Current situation from v1.0',
+        proposedChange: 'Proposed change from v1.0',
+        intendedBenefits: 'Benefits from v1.0',
+        affectedComponents: 'Module CS101',
+        ownerName: 'Dr. Turing',
+        ownerRole: 'Module Lead',
+        targetDate: '2026-09-01',
+        createdAt: '2026-01-10T10:00:00.000Z',
+        updatedAt: '2026-01-15T12:00:00.000Z',
+        context: {
+          programmeName: 'BSc Computer Science',
+          moduleName: 'Algorithms',
+          level: 'Level 5',
+          department: 'Computing',
+        },
+        versions: [],
+        changeLog: [],
+        institutionalNotes: {
+          reviewerNotes: 'Notes from v1.0',
+          generalNotes: '',
+        },
+      },
+    ],
+    activeProposalId: 'prop-v1-001',
+    lastUpdated: '2026-01-15T12:00:00.000Z',
+  };
+
+  it('correctly identifies v1.0.0 state', () => {
+    expect(isV1_0State(sampleV1_0State)).toBe(true);
+    expect(isRepositoryState(sampleV1_0State)).toBe(false);
+  });
+
+  it('safely upgrades v1.0.0 state to v1.1.0 without loss of Batch 1 metadata', () => {
+    const upgraded = migrateV1_0ToV1_1(sampleV1_0State);
+    expect(upgraded.schemaVersion).toBe('1.1.0');
+    expect(upgraded.proposals).toHaveLength(1);
+
+    const prop = upgraded.proposals[0];
+    expect(prop.id).toBe('prop-v1-001');
+    expect(prop.ref).toBe('CCP-2026-001');
+    expect(prop.title).toBe('Batch 1 Proposal Title');
+    expect(prop.ownerName).toBe('Dr. Turing');
+    expect(prop.institutionalNotes.reviewerNotes).toBe('Notes from v1.0');
+
+    // Governance fields populated
+    expect(prop.impactAssessment).toBeDefined();
+    expect(Object.keys(prop.impactAssessment.dimensions)).toHaveLength(6);
+    expect(prop.reviews).toEqual([]);
+    expect(prop.decisions).toEqual([]);
+    expect(prop.implementationActions).toEqual([]);
+    expect(prop.events.length).toBeGreaterThanOrEqual(1);
+    expect(prop.events[0].eventType).toBe('proposal_created');
+  });
+
+  it('auto-migrates v1.0.0 in validateRepositoryState seamlessly', () => {
+    const result = validateRepositoryState(sampleV1_0State);
+    expect(result.valid).toBe(true);
+    expect(result.data?.schemaVersion).toBe('1.1.0');
+    expect(result.data?.proposals[0].id).toBe('prop-v1-001');
+  });
+});
+
 describe('Repository Validation and JSON Roundtrip', () => {
-  it('validates a correct repository payload', () => {
+  it('validates a correct v1.1.0 repository payload', () => {
     const repo: RepositoryState = {
-      schemaVersion: '1.0.0',
+      schemaVersion: '1.1.0',
       proposals: [
         {
           id: 'test-1',
@@ -134,6 +222,11 @@ describe('Repository Validation and JSON Roundtrip', () => {
             reviewerNotes: '',
             generalNotes: '',
           },
+          impactAssessment: createDefaultImpactAssessment(),
+          reviews: [],
+          decisions: [],
+          implementationActions: [],
+          events: [],
         },
       ],
       activeProposalId: 'test-1',

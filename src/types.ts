@@ -12,10 +12,10 @@ export type ProposalStatus =
   | 'submitted'
   | 'under_review'
   | 'approved'
-  | 'approved_with_conditions'
   | 'rejected'
   | 'in_implementation'
-  | 'completed';
+  | 'completed'
+  | 'withdrawn';
 
 export interface CurriculumContext {
   programmeName: string;
@@ -65,6 +65,103 @@ export interface InstitutionalNotes {
   capabilityNotes?: string;
 }
 
+// --- Batch 2 Governance & Educational Impact Structures ---
+
+export type ImpactLevel = 'not_assessed' | 'none' | 'low' | 'moderate' | 'high';
+
+export type ImpactDimensionKey =
+  | 'learningOutcomes'
+  | 'assessmentDesign'
+  | 'studentProgression'
+  | 'teachingDelivery'
+  | 'staffWorkload'
+  | 'accessibilityInclusion';
+
+export interface ImpactDimension {
+  key: ImpactDimensionKey;
+  title: string;
+  impactLevel: ImpactLevel;
+  rationale: string;
+  evidence?: string;
+  mitigation?: string;
+}
+
+export interface EducationalImpactAssessment {
+  dimensions: Record<ImpactDimensionKey, ImpactDimension>;
+  overallNotes?: string;
+  lastAssessedAt?: string;
+}
+
+export interface GovernanceReview {
+  id: string;
+  reviewerName: string;
+  reviewerRole?: string;
+  reviewDate: string;
+  findings: string;
+  recommendations: string;
+  revisionRequests?: string;
+  conditions?: string;
+}
+
+export type DecisionOutcome = 'approved' | 'rejected' | 'returned_for_revision';
+
+export interface GovernanceDecision {
+  id: string;
+  outcome: DecisionOutcome;
+  decisionMaker: string;
+  decisionDate: string;
+  decisionRationale: string;
+  conditions?: string;
+  targetSnapshotId?: string;
+}
+
+export type ActionStatus = 'not_started' | 'in_progress' | 'blocked' | 'completed';
+
+export interface ImplementationAction {
+  id: string;
+  title: string;
+  assignee: string;
+  dueDate?: string;
+  status: ActionStatus;
+  notes?: string;
+  completionEvidence?: string;
+  completedAt?: string;
+}
+
+export interface ProposalClosure {
+  verifiedBy: string;
+  verifiedDate: string;
+  closureNotes: string;
+  verifiedBasis: string;
+}
+
+export type GovernanceEventType =
+  | 'proposal_created'
+  | 'proposal_submitted'
+  | 'returned_for_revision'
+  | 'under_review'
+  | 'review_recorded'
+  | 'decision_recorded'
+  | 'proposal_approved'
+  | 'proposal_rejected'
+  | 'implementation_started'
+  | 'action_added'
+  | 'action_updated'
+  | 'action_completed'
+  | 'closure_verified'
+  | 'proposal_completed'
+  | 'proposal_withdrawn'
+  | 'proposal_reopened';
+
+export interface GovernanceEvent {
+  id: string;
+  timestamp: string;
+  eventType: GovernanceEventType;
+  actor: string;
+  description: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ChangeProposal {
   id: string; // Stable internal UUID
   ref: string; // User-facing reference (e.g., CCP-2026-001)
@@ -91,15 +188,36 @@ export interface ChangeProposal {
   institutionalNotes: InstitutionalNotes;
   comparisons?: Comparison[];
 
-  // Extensible fields reserved for Batch 2 (impact, formal reviews, implementation)
-  impactAssessment?: Record<string, unknown>;
-  governanceReview?: Record<string, unknown>;
-  implementationActions?: unknown[];
+  // Batch 2 governance structures
+  impactAssessment: EducationalImpactAssessment;
+  reviews: GovernanceReview[];
+  decisions: GovernanceDecision[];
+  implementationActions: ImplementationAction[];
+  closure?: ProposalClosure;
+  events: GovernanceEvent[];
 }
 
 export interface RepositoryState {
-  schemaVersion: '1.0.0';
+  schemaVersion: '1.1.0';
   proposals: ChangeProposal[];
+  activeProposalId: string | null;
+  lastUpdated: string;
+}
+
+// Prior repository version (Batch 1) for safe migration
+export interface RepositoryStateV1_0 {
+  schemaVersion: '1.0.0';
+  proposals: Array<Partial<ChangeProposal> & {
+    id: string;
+    ref: string;
+    title: string;
+    category: ChangeCategory;
+    status: ProposalStatus;
+    context: CurriculumContext;
+    versions: Version[];
+    changeLog: ChangeLogEntry[];
+    institutionalNotes: InstitutionalNotes;
+  }>;
   activeProposalId: string | null;
   lastUpdated: string;
 }

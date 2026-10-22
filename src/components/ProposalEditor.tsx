@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
-import type { ChangeProposal, ChangeCategory, Version, ChangeLogEntry } from '../types';
+import type {
+  ChangeProposal,
+  ChangeCategory,
+  Version,
+  ChangeLogEntry,
+  ProposalStatus,
+  ImpactDimensionKey,
+  ImpactDimension,
+  GovernanceReview,
+  GovernanceDecision,
+  ImplementationAction,
+  ProposalClosure,
+} from '../types';
 import { VersionManagementCard } from './VersionManagementCard';
 import { VersionComparisonCard } from './VersionComparisonCard';
 import { ChangeLogCard } from './ChangeLogCard';
 import { OutputSummaryCard } from './OutputSummaryCard';
+import { EducationalImpactCard } from './EducationalImpactCard';
+import { ReviewAndDecisionsCard } from './ReviewAndDecisionsCard';
+import { ImplementationTrackerCard } from './ImplementationTrackerCard';
+import { GovernanceHistoryCard } from './GovernanceHistoryCard';
 import {
   FileText,
   Compass,
@@ -13,6 +29,10 @@ import {
   ShieldCheck,
   History,
   CheckCircle,
+  ShieldAlert,
+  ListChecks,
+  FileCheck,
+  ChevronRight,
 } from 'lucide-react';
 
 interface ProposalEditorProps {
@@ -22,9 +42,112 @@ interface ProposalEditorProps {
   onUpdateVersion: (v: Version) => void;
   onRemoveVersion: (id: string) => void;
   onUpdateChangeLog: (entries: ChangeLogEntry[]) => void;
+  // Batch 2 governance handlers
+  onTransitionStatus: (
+    newStatus: ProposalStatus,
+    actor: string,
+    reason?: string
+  ) => { success: boolean; message?: string };
+  onUpdateImpactDimension: (
+    key: ImpactDimensionKey,
+    updates: Partial<ImpactDimension>
+  ) => void;
+  onUpdateOverallImpactNotes: (notes: string) => void;
+  onAddReview: (review: Omit<GovernanceReview, 'id'>) => void;
+  onRecordDecision: (
+    decision: Omit<GovernanceDecision, 'id'>
+  ) => { success: boolean; message?: string } | void;
+  onAddAction: (action: Omit<ImplementationAction, 'id'>) => void;
+  onUpdateAction: (id: string, updates: Partial<ImplementationAction>) => void;
+  onDeleteAction: (id: string) => void;
+  onVerifyAndClose: (closure: ProposalClosure) => {
+    success: boolean;
+    message?: string;
+  };
+  onReopen?: (actor: string, reason: string) => {
+    success: boolean;
+    message?: string;
+  };
 }
 
-type EditorTab = 'basics' | 'context' | 'rationale' | 'versions' | 'governance' | 'summary';
+export type EditorTab =
+  | 'basics'
+  | 'context'
+  | 'rationale'
+  | 'versions'
+  | 'impact'
+  | 'governance'
+  | 'implementation'
+  | 'notes'
+  | 'history'
+  | 'summary';
+
+const STATUS_GUIDANCE: Record<ProposalStatus, { label: string; bg: string; color: string; border: string; nextAction: string; targetTab: EditorTab }> = {
+  draft: {
+    label: 'Draft',
+    bg: '#f1f5f9',
+    color: '#334155',
+    border: '#cbd5e1',
+    nextAction: 'Complete proposal details and Educational Impact Assessment, then Submit for Review.',
+    targetTab: 'impact',
+  },
+  submitted: {
+    label: 'Submitted',
+    bg: '#fef3c7',
+    color: '#92400e',
+    border: '#fde68a',
+    nextAction: 'Ready for committee assignment. Advance to "Under Review" or record initial reviewer findings.',
+    targetTab: 'governance',
+  },
+  under_review: {
+    label: 'Under Review',
+    bg: '#fef9c3',
+    color: '#854d0e',
+    border: '#fef08a',
+    nextAction: 'Committee review active. Record reviewer recommendations and author formal governance decision.',
+    targetTab: 'governance',
+  },
+  approved: {
+    label: 'Approved',
+    bg: '#dcfce7',
+    color: '#166534',
+    border: '#86efac',
+    nextAction: 'Proposal approved by committee. Initialize implementation actions and begin operational rollout.',
+    targetTab: 'implementation',
+  },
+  in_implementation: {
+    label: 'In Implementation',
+    bg: '#dbeafe',
+    color: '#1e40af',
+    border: '#bfdbfe',
+    nextAction: 'Execution active. Complete all operational action items and record final closure verification sign-off.',
+    targetTab: 'implementation',
+  },
+  completed: {
+    label: 'Completed',
+    bg: '#e0e7ff',
+    color: '#3730a3',
+    border: '#c7d2fe',
+    nextAction: 'Proposal fully implemented and closed with verified sign-off. Historical governance record preserved.',
+    targetTab: 'summary',
+  },
+  rejected: {
+    label: 'Rejected',
+    bg: '#fee2e2',
+    color: '#991b1b',
+    border: '#fca5a5',
+    nextAction: 'Proposal formally rejected by governance committee. Historical record preserved; can be reopened if revised.',
+    targetTab: 'governance',
+  },
+  withdrawn: {
+    label: 'Withdrawn',
+    bg: '#f1f5f9',
+    color: '#64748b',
+    border: '#cbd5e1',
+    nextAction: 'Proposal withdrawn by proposer. Historical record preserved; can be reopened as draft if desired.',
+    targetTab: 'history',
+  },
+};
 
 export const ProposalEditor: React.FC<ProposalEditorProps> = ({
   proposal,
@@ -33,16 +156,30 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
   onUpdateVersion,
   onRemoveVersion,
   onUpdateChangeLog,
+  onTransitionStatus,
+  onUpdateImpactDimension,
+  onUpdateOverallImpactNotes,
+  onAddReview,
+  onRecordDecision,
+  onAddAction,
+  onUpdateAction,
+  onDeleteAction,
+  onVerifyAndClose,
+  onReopen,
 }) => {
   const [activeTab, setActiveTab] = useState<EditorTab>('basics');
 
-  const tabs: Array<{ id: EditorTab; label: string; icon: React.ReactNode }> = [
+  const tabs: Array<{ id: EditorTab; label: string; icon: React.ReactNode; badge?: string | number }> = [
     { id: 'basics', label: '1. Basic Details', icon: <FileText size={16} /> },
     { id: 'context', label: '2. Curriculum Context', icon: <Compass size={16} /> },
     { id: 'rationale', label: '3. Change & Rationale', icon: <Sparkles size={16} /> },
     { id: 'versions', label: '4. Snapshots & Log', icon: <History size={16} /> },
-    { id: 'governance', label: '5. Governance Notes', icon: <ShieldCheck size={16} /> },
-    { id: 'summary', label: '6. Output Summary', icon: <CheckCircle size={16} /> },
+    { id: 'impact', label: '5. Educational Impact', icon: <ShieldAlert size={16} /> },
+    { id: 'governance', label: '6. Review & Decisions', icon: <ShieldCheck size={16} />, badge: proposal.decisions.length },
+    { id: 'implementation', label: '7. Implementation Plan', icon: <ListChecks size={16} />, badge: proposal.implementationActions.length },
+    { id: 'notes', label: '8. Governance Notes', icon: <FileCheck size={16} /> },
+    { id: 'history', label: '9. Governance History', icon: <History size={16} />, badge: proposal.events.length },
+    { id: 'summary', label: '10. Output Summary', icon: <CheckCircle size={16} /> },
   ];
 
   const currentTabIndex = tabs.findIndex((t) => t.id === activeTab);
@@ -77,8 +214,10 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
     });
   };
 
+  const statusInfo = STATUS_GUIDANCE[proposal.status] || STATUS_GUIDANCE.draft;
+
   return (
-    <div className="proposal-editor-container">
+    <div className="proposal-editor-container" data-testid="proposal-editor">
       {/* Proposal Header Banner */}
       <div
         className="cp-card cp-hide-print"
@@ -90,22 +229,31 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
       >
         <div className="flex justify-between items-center flex-wrap gap-sm">
           <div>
-            <div className="flex items-center gap-xs mb-xs">
+            <div className="flex items-center gap-xs mb-xs flex-wrap">
               <span className="badge" style={{ backgroundColor: '#000', color: '#fff' }}>
                 {proposal.ref}
               </span>
-              <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                STATUS: {proposal.status.toUpperCase()}
+              <span
+                className="badge"
+                style={{
+                  backgroundColor: statusInfo.bg,
+                  color: statusInfo.color,
+                  border: `1px solid ${statusInfo.border}`,
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                STATUS: {statusInfo.label.toUpperCase()}
               </span>
               <span className="text-small text-muted">
-                Last modified: {new Date(proposal.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Last updated: {new Date(proposal.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <h1 style={{ fontSize: '1.4rem', margin: '4px 0' }}>{proposal.title}</h1>
             <p className="text-small text-muted mb-0">
               {proposal.context.programmeName ? `${proposal.context.programmeName} &middot; ` : ''}
               {proposal.context.moduleName ? `${proposal.context.moduleName} &middot; ` : ''}
-              Proposer: {proposal.ownerName || 'Unassigned'}
+              Proposer: {proposal.ownerName || 'Unassigned'} {proposal.ownerRole ? `(${proposal.ownerRole})` : ''}
             </p>
           </div>
           <div className="flex items-center gap-xs">
@@ -114,10 +262,55 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
               className="cp-button-secondary"
               onClick={() => setActiveTab('summary')}
               title="Preview Printable Report"
+              data-testid="btn-view-summary-report"
             >
               <FileText size={16} /> View Report
             </button>
           </div>
+        </div>
+
+        {/* Lifecycle Status & Obvious Next Action Callout Strip */}
+        <div
+          style={{
+            backgroundColor: statusInfo.bg,
+            border: `1px solid ${statusInfo.border}`,
+            borderRadius: '6px',
+            padding: '8px 14px',
+            marginTop: 'var(--spacing-sm)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+          data-testid="status-guidance-bar"
+        >
+          <div className="flex items-center gap-xs">
+            <span style={{ fontWeight: 700, color: statusInfo.color, fontSize: '0.85rem' }}>
+              Governance Guidance:
+            </span>
+            <span style={{ color: statusInfo.color, fontSize: '0.85rem' }}>
+              {statusInfo.nextAction}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className="cp-button-link"
+            style={{
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              color: statusInfo.color,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 6px',
+            }}
+            onClick={() => setActiveTab(statusInfo.targetTab)}
+            data-testid="btn-guidance-jump"
+          >
+            Take action now <ChevronRight size={14} />
+          </button>
         </div>
 
         {/* Tab Navigation Bar */}
@@ -140,19 +333,35 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '8px 14px',
+                  padding: '8px 12px',
+                  border: 'none',
                   borderRadius: 'var(--radius-sm)',
-                  border: isSelected ? '1px solid var(--color-border-strong)' : '1px solid transparent',
-                  backgroundColor: isSelected ? '#f1f5f9' : 'transparent',
-                  color: isSelected ? '#000' : 'var(--color-text-secondary)',
-                  fontWeight: isSelected ? 600 : 400,
+                  backgroundColor: isSelected ? 'var(--color-primary-accent, #0056b3)' : 'transparent',
+                  color: isSelected ? '#fff' : 'var(--color-text-secondary)',
+                  fontWeight: isSelected ? 600 : 500,
                   fontSize: '0.85rem',
-                  cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.15s ease',
                 }}
+                data-testid={`tab-${tab.id}`}
               >
                 {tab.icon}
-                {tab.label}
+                <span>{tab.label}</span>
+                {tab.badge !== undefined && Number(tab.badge) > 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '1px 5px',
+                      borderRadius: '10px',
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.3)' : '#e2e8f0',
+                      color: isSelected ? '#ffffff' : '#475569',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -161,70 +370,42 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
 
       {/* Tab 1: Basic Details */}
       {activeTab === 'basics' && (
-        <div className="cp-card cp-hide-print">
-          <div className="cp-card-header">
-            <div>
-              <h2 className="cp-card-title">1. Proposal Identification & Classification</h2>
-              <p className="text-small text-muted mb-0">
-                Core proposal title, unique reference code, category, and responsible lead
-              </p>
-            </div>
+        <div className="cp-card cp-hide-print mb-lg">
+          <h2 className="cp-card-title mb-md">
+            <FileText size={20} /> Stage 1: Proposal Basic Information
+          </h2>
+
+          <div className="form-group mb-md">
+            <label htmlFor="proposal-title">Proposal Title *</label>
+            <input
+              id="proposal-title"
+              type="text"
+              value={proposal.title}
+              onChange={(e) => onUpdateProposal({ title: e.target.value })}
+              placeholder="e.g. Master of Public Health — AI Integrity & Assessment Redesign"
+              className="cp-input"
+              data-testid="input-proposal-title"
+            />
           </div>
 
-          <div className="form-row">
-            <div className="form-group" style={{ flex: 3 }}>
-              <label htmlFor="proposal-title-input">Proposal Title *</label>
-              <input
-                id="proposal-title-input"
-                type="text"
-                value={proposal.title}
-                onChange={(e) => onUpdateProposal({ title: e.target.value })}
-                placeholder="e.g. Public Health Policy Analysis — AI Integrity Redesign"
-                required
-              />
-            </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label htmlFor="proposal-ref-input">Proposal Reference</label>
-              <input
-                id="proposal-ref-input"
-                type="text"
-                value={proposal.ref}
-                onChange={(e) => onUpdateProposal({ ref: e.target.value })}
-                placeholder="e.g. CCP-2026-001"
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
+          <div className="form-row mb-md">
             <div className="form-group">
-              <label htmlFor="proposal-category-select">Change Category *</label>
+              <label htmlFor="proposal-category">Change Category</label>
               <select
-                id="proposal-category-select"
+                id="proposal-category"
                 value={proposal.category}
                 onChange={(e) => onUpdateProposal({ category: e.target.value as ChangeCategory })}
+                className="cp-input"
+                data-testid="select-proposal-category"
               >
-                <option value="minor_amendment">Minor Amendment (Syllabus/Reading update)</option>
-                <option value="major_modification">Major Modification (Credit/Structure shift)</option>
-                <option value="assessment_redesign">Assessment Redesign (Weighting/Format)</option>
-                <option value="ai_guidance_update">AI Guidance & Policy Update</option>
-                <option value="learning_outcomes_revision">Learning Outcomes Revision</option>
-                <option value="structural_change">Structural Programme Change</option>
-                <option value="other">Other Academic Revision</option>
+                <option value="minor_amendment">Minor Amendment (Module Level)</option>
+                <option value="major_modification">Major Modification (Programme Level)</option>
+                <option value="ai_guidance_update">AI Guidance & Integrity Update</option>
+                <option value="assessment_redesign">Assessment Structure Redesign</option>
+                <option value="learning_outcomes">Learning Outcomes Revision</option>
               </select>
             </div>
-            <div className="form-group">
-              <label htmlFor="proposal-targetdate-input">Target Implementation Date / Term</label>
-              <input
-                id="proposal-targetdate-input"
-                type="text"
-                value={proposal.targetDate || ''}
-                onChange={(e) => onUpdateProposal({ targetDate: e.target.value })}
-                placeholder="e.g. 2026-09-01 or Autumn Semester 2026/27"
-              />
-            </div>
-          </div>
 
-          <div className="form-row">
             <div className="form-group">
               <label htmlFor="proposal-owner-name">Proposer / Responsible Person *</label>
               <input
@@ -233,22 +414,38 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
                 value={proposal.ownerName}
                 onChange={(e) => onUpdateProposal({ ownerName: e.target.value })}
                 placeholder="e.g. Dr. Eleanor Vance"
+                className="cp-input"
+                data-testid="input-proposal-owner"
               />
             </div>
+          </div>
+
+          <div className="form-row mb-md">
             <div className="form-group">
-              <label htmlFor="proposal-owner-role">Proposer Academic Role</label>
+              <label htmlFor="proposal-owner-role">Proposer Role / Capacity</label>
               <input
                 id="proposal-owner-role"
                 type="text"
                 value={proposal.ownerRole || ''}
                 onChange={(e) => onUpdateProposal({ ownerRole: e.target.value })}
                 placeholder="e.g. Module Leader / Programme Director"
+                className="cp-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="proposal-target-date">Target Implementation Date</label>
+              <input
+                id="proposal-target-date"
+                type="date"
+                value={proposal.targetDate || ''}
+                onChange={(e) => onUpdateProposal({ targetDate: e.target.value })}
+                className="cp-input"
               />
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-lg pt-md" style={{ borderTop: '1px solid var(--color-border-default)' }}>
-            <span className="text-small text-muted">All changes save automatically to local browser storage.</span>
+          <div className="flex justify-end mt-md">
             <button type="button" className="cp-button-primary" onClick={goToNextTab}>
               Next: Curriculum Context <ArrowRight size={16} />
             </button>
@@ -258,40 +455,38 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
 
       {/* Tab 2: Curriculum Context */}
       {activeTab === 'context' && (
-        <div className="cp-card cp-hide-print">
-          <div className="cp-card-header">
-            <div>
-              <h2 className="cp-card-title">2. Curriculum Context</h2>
-              <p className="text-small text-muted mb-0">
-                Identify the institutional, programme, and module context affected by this change
-              </p>
-            </div>
-          </div>
+        <div className="cp-card cp-hide-print mb-lg">
+          <h2 className="cp-card-title mb-md">
+            <Compass size={20} /> Stage 2: Curriculum Context
+          </h2>
 
-          <div className="form-row">
+          <div className="form-row mb-md">
             <div className="form-group">
-              <label htmlFor="context-programme-name">Programme Name</label>
+              <label htmlFor="context-prog">Programme Name</label>
               <input
-                id="context-programme-name"
+                id="context-prog"
                 type="text"
                 value={proposal.context.programmeName}
                 onChange={(e) => handleContextChange('programmeName', e.target.value)}
-                placeholder="e.g. Master of Public Health"
+                placeholder="e.g. Master of Public Health (MPH)"
+                className="cp-input"
               />
             </div>
+
             <div className="form-group">
-              <label htmlFor="context-module-name">Module Name</label>
+              <label htmlFor="context-module">Module Name</label>
               <input
-                id="context-module-name"
+                id="context-module"
                 type="text"
                 value={proposal.context.moduleName}
                 onChange={(e) => handleContextChange('moduleName', e.target.value)}
-                placeholder="e.g. Health Policy Analysis"
+                placeholder="e.g. Health Policy Analysis (HPA-701)"
+                className="cp-input"
               />
             </div>
           </div>
 
-          <div className="form-row">
+          <div className="form-row mb-md">
             <div className="form-group">
               <label htmlFor="context-level">Academic Level</label>
               <input
@@ -299,33 +494,37 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
                 type="text"
                 value={proposal.context.level}
                 onChange={(e) => handleContextChange('level', e.target.value)}
-                placeholder="e.g. Postgraduate (Level 7) or Level 6"
+                placeholder="e.g. Postgraduate (Level 7) / Undergraduate (Level 5)"
+                className="cp-input"
               />
             </div>
+
             <div className="form-group">
-              <label htmlFor="context-department">Department / Faculty</label>
+              <label htmlFor="context-dept">Department / Faculty</label>
               <input
-                id="context-department"
+                id="context-dept"
                 type="text"
                 value={proposal.context.department}
                 onChange={(e) => handleContextChange('department', e.target.value)}
-                placeholder="e.g. School of Public Health & Epidemiology"
+                placeholder="e.g. School of Public Health"
+                className="cp-input"
               />
             </div>
           </div>
 
-          <div className="form-group mb-0">
-            <label htmlFor="context-situation">Current Curriculum Situation & Challenges</label>
+          <div className="form-group mb-md">
+            <label htmlFor="context-situation">Current Curriculum Situation</label>
             <textarea
               id="context-situation"
               value={proposal.context.currentSituation || ''}
               onChange={(e) => handleContextChange('currentSituation', e.target.value)}
-              placeholder="Describe the current delivery, syllabus structure, assessment mechanism, and what led to this proposed change..."
+              placeholder="Describe the current baseline delivery, student challenges, or issues prompting this change..."
               rows={3}
+              className="cp-input"
             />
           </div>
 
-          <div className="flex justify-between items-center mt-lg pt-md" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+          <div className="flex justify-between items-center mt-md">
             <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
               <ArrowLeft size={16} /> Previous: Basic Details
             </button>
@@ -338,74 +537,79 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
 
       {/* Tab 3: Change & Rationale */}
       {activeTab === 'rationale' && (
-        <div className="cp-card cp-hide-print">
-          <div className="cp-card-header">
-            <div>
-              <h2 className="cp-card-title">3. Proposed Change & Educational Rationale</h2>
-              <p className="text-small text-muted mb-0">
-                Articulate the exact changes, the pedagogical justification, and intended student outcomes
-              </p>
-            </div>
-          </div>
+        <div className="cp-card cp-hide-print mb-lg">
+          <h2 className="cp-card-title mb-md">
+            <Sparkles size={20} /> Stage 3: Proposed Modification & Educational Rationale
+          </h2>
 
-          <div className="form-group">
-            <label htmlFor="proposal-proposed-change">Proposed Changes *</label>
+          <div className="form-group mb-md">
+            <label htmlFor="proposal-change-desc">
+              Proposed Change Description <span className="text-muted">(What is changing?)</span>
+            </label>
             <textarea
-              id="proposal-proposed-change"
+              id="proposal-change-desc"
               value={proposal.proposedChange}
               onChange={(e) => onUpdateProposal({ proposedChange: e.target.value })}
-              placeholder="Detail specifically what is being added, modified, removed, or restructured..."
+              placeholder="Detail the specific alterations to syllabus, assessment briefs, weighting, or teaching format..."
               rows={3}
-              required
+              className="cp-input"
+              data-testid="textarea-proposed-change"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="proposal-rationale">Educational Rationale (Why are you proposing this?) *</label>
+          <div className="form-group mb-md">
+            <label htmlFor="proposal-rationale">
+              Educational Rationale <span className="text-muted">(Why is this change necessary?)</span>
+            </label>
             <textarea
               id="proposal-rationale"
               value={proposal.rationale}
               onChange={(e) => onUpdateProposal({ rationale: e.target.value })}
-              placeholder="Cite pedagogical evidence, student feedback, external accreditation requirements, or academic integrity rationale..."
+              placeholder="Explain the pedagogical justification, student feedback evidence, or professional alignment..."
               rows={3}
-              required
+              className="cp-input"
+              data-testid="textarea-rationale"
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="proposal-intended-benefits">Intended Benefits & Curricular Outcomes</label>
+          <div className="form-group mb-md">
+            <label htmlFor="proposal-benefits">
+              Intended Benefits & Learning Outcomes
+            </label>
             <textarea
-              id="proposal-intended-benefits"
+              id="proposal-benefits"
               value={proposal.intendedBenefits}
               onChange={(e) => onUpdateProposal({ intendedBenefits: e.target.value })}
-              placeholder="How does this change enhance student learning, assessment authenticity, or curriculum coherence?"
+              placeholder="What improvements in student engagement, clarity, or capability are expected?"
               rows={2}
+              className="cp-input"
             />
           </div>
 
-          <div className="form-group mb-0">
-            <label htmlFor="proposal-affected-components">Affected Modules & Programmes</label>
+          <div className="form-group mb-md">
+            <label htmlFor="proposal-affected">Affected Curriculum Components</label>
             <input
-              id="proposal-affected-components"
+              id="proposal-affected"
               type="text"
               value={proposal.affectedComponents}
               onChange={(e) => onUpdateProposal({ affectedComponents: e.target.value })}
-              placeholder="e.g. Module: Health Policy (HPA-701); Programme: Master of Public Health"
+              placeholder="e.g. Assessment 1 Brief, Rubric Criterion 3, Learning Outcome LO-2"
+              className="cp-input"
             />
           </div>
 
-          <div className="flex justify-between items-center mt-lg pt-md" style={{ borderTop: '1px solid var(--color-border-default)' }}>
+          <div className="flex justify-between items-center mt-md">
             <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
-              <ArrowLeft size={16} /> Previous: Context
+              <ArrowLeft size={16} /> Previous: Curriculum Context
             </button>
             <button type="button" className="cp-button-primary" onClick={goToNextTab}>
-              Next: Snapshots & Changes <ArrowRight size={16} />
+              Next: Snapshots & Log <ArrowRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Tab 4: Snapshots & Changes */}
+      {/* Tab 4: Snapshots & Log */}
       {activeTab === 'versions' && (
         <div>
           <VersionManagementCard
@@ -428,133 +632,191 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
               <ArrowLeft size={16} /> Previous: Change & Rationale
             </button>
             <button type="button" className="cp-button-primary" onClick={goToNextTab}>
+              Next: Educational Impact <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Educational Impact (Batch 2 New Feature) */}
+      {activeTab === 'impact' && (
+        <div>
+          <EducationalImpactCard
+            assessment={proposal.impactAssessment}
+            onUpdateDimension={onUpdateImpactDimension}
+            onUpdateOverallNotes={onUpdateOverallImpactNotes}
+            readOnly={proposal.status === 'completed' || proposal.status === 'rejected'}
+          />
+
+          <div className="cp-card cp-hide-print flex justify-between items-center">
+            <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
+              <ArrowLeft size={16} /> Previous: Snapshots & Log
+            </button>
+            <button type="button" className="cp-button-primary" onClick={goToNextTab}>
+              Next: Review & Decisions <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Review & Decisions (Batch 2 New Feature) */}
+      {activeTab === 'governance' && (
+        <div>
+          <ReviewAndDecisionsCard
+            proposal={proposal}
+            onAddReview={onAddReview}
+            onRecordDecision={onRecordDecision}
+            onTransitionStatus={onTransitionStatus}
+          />
+
+          <div className="cp-card cp-hide-print flex justify-between items-center">
+            <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
+              <ArrowLeft size={16} /> Previous: Educational Impact
+            </button>
+            <button type="button" className="cp-button-primary" onClick={goToNextTab}>
+              Next: Implementation Plan <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 7: Implementation Plan (Batch 2 New Feature) */}
+      {activeTab === 'implementation' && (
+        <div>
+          <ImplementationTrackerCard
+            proposal={proposal}
+            onAddAction={onAddAction}
+            onUpdateAction={onUpdateAction}
+            onDeleteAction={onDeleteAction}
+            onVerifyAndClose={onVerifyAndClose}
+            onReopen={onReopen}
+          />
+
+          <div className="cp-card cp-hide-print flex justify-between items-center">
+            <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
+              <ArrowLeft size={16} /> Previous: Review & Decisions
+            </button>
+            <button type="button" className="cp-button-primary" onClick={goToNextTab}>
               Next: Governance Notes <ArrowRight size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Tab 5: Institutional Governance */}
-      {activeTab === 'governance' && (
-        <div>
-          <div className="cp-card cp-hide-print">
-            <div className="cp-card-header">
-              <div>
-                <h2 className="cp-card-title">5. Institutional Governance & Review Notes</h2>
-                <p className="text-small text-muted mb-0">
-                  Record QA observations, AI transparency considerations, risks, and working assumptions
-                </p>
-              </div>
-            </div>
+      {/* Tab 8: Governance Notes (Retained from Batch 1) */}
+      {activeTab === 'notes' && (
+        <div className="cp-card cp-hide-print mb-lg">
+          <h2 className="cp-card-title mb-md">
+            <FileCheck size={20} /> Stage 8: Institutional Governance Notes & Context
+          </h2>
 
-            <div className="form-group mb-sm">
-              <label htmlFor="notes-qa-reviewer">QA / Approver Committee Notes</label>
-              <textarea
-                id="notes-qa-reviewer"
-                value={proposal.institutionalNotes.reviewerNotes}
-                onChange={(e) => handleInstitutionalNotesChange('reviewerNotes', e.target.value)}
-                placeholder="Record approval committee notes, conditions, or recommendations..."
-                rows={2}
-              />
-            </div>
+          <div className="form-group mb-md">
+            <label htmlFor="notes-qa-reviewer">QA / Approver Committee Notes</label>
+            <textarea
+              id="notes-qa-reviewer"
+              value={proposal.institutionalNotes.reviewerNotes}
+              onChange={(e) => handleInstitutionalNotesChange('reviewerNotes', e.target.value)}
+              placeholder="Record approval committee notes, conditions, or recommendations..."
+              rows={2}
+              className="cp-input"
+            />
+          </div>
 
-            <div className="form-group mb-sm">
-              <label htmlFor="notes-ai-involvement">
-                AI Involvement in Curriculum Design <span className="text-muted">(Optional)</span>
+          <div className="form-group mb-md">
+            <label htmlFor="notes-ai-involvement">
+              AI Involvement in Curriculum Design <span className="text-muted">(Optional)</span>
+            </label>
+            <textarea
+              id="notes-ai-involvement"
+              value={proposal.institutionalNotes.aiInvolvement || ''}
+              onChange={(e) => handleInstitutionalNotesChange('aiInvolvement', e.target.value)}
+              placeholder="How was AI involved in researching or evaluating this curriculum change process?"
+              rows={2}
+              className="cp-input"
+            />
+          </div>
+
+          <div className="form-row mb-md">
+            <div className="form-group">
+              <label htmlFor="notes-risks">
+                Risks / Concerns <span className="text-muted">(Optional)</span>
               </label>
               <textarea
-                id="notes-ai-involvement"
-                value={proposal.institutionalNotes.aiInvolvement || ''}
-                onChange={(e) => handleInstitutionalNotesChange('aiInvolvement', e.target.value)}
-                placeholder="How was AI involved in researching or evaluating this curriculum change process?"
+                id="notes-risks"
+                value={proposal.institutionalNotes.risksConcerns || ''}
+                onChange={(e) => handleInstitutionalNotesChange('risksConcerns', e.target.value)}
+                placeholder="Identify any pedagogical or operational risks..."
                 rows={2}
+                className="cp-input"
               />
             </div>
-
-            <div className="form-row mb-sm">
-              <div className="form-group">
-                <label htmlFor="notes-risks">
-                  Risks / Concerns <span className="text-muted">(Optional)</span>
-                </label>
-                <textarea
-                  id="notes-risks"
-                  value={proposal.institutionalNotes.risksConcerns || ''}
-                  onChange={(e) => handleInstitutionalNotesChange('risksConcerns', e.target.value)}
-                  placeholder="Identify any pedagogical or operational risks..."
-                  rows={2}
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="notes-assumptions">
-                  Assumptions <span className="text-muted">(Optional)</span>
-                </label>
-                <textarea
-                  id="notes-assumptions"
-                  value={proposal.institutionalNotes.assumptions || ''}
-                  onChange={(e) => handleInstitutionalNotesChange('assumptions', e.target.value)}
-                  placeholder="What key assumptions underpin this change?"
-                  rows={2}
-                />
-              </div>
-            </div>
-
-            <div className="form-group mb-0">
-              <label htmlFor="notes-general">General Context Considerations</label>
+            <div className="form-group">
+              <label htmlFor="notes-assumptions">
+                Assumptions <span className="text-muted">(Optional)</span>
+              </label>
               <textarea
-                id="notes-general"
-                value={proposal.institutionalNotes.generalNotes}
-                onChange={(e) => handleInstitutionalNotesChange('generalNotes', e.target.value)}
-                placeholder="Additional notes for departmental records..."
+                id="notes-assumptions"
+                value={proposal.institutionalNotes.assumptions || ''}
+                onChange={(e) => handleInstitutionalNotesChange('assumptions', e.target.value)}
+                placeholder="What key assumptions underpin this change?"
                 rows={2}
+                className="cp-input"
               />
             </div>
           </div>
 
-          {/* Capability & Governance Notes layer */}
-          <div className="cp-card cp-hide-print" style={{ borderStyle: 'dashed', opacity: 0.9 }}>
-            <details>
-              <summary
-                style={{
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 'var(--font-size-meta)',
-                  padding: '4px 0',
-                }}
-              >
-                Capability & Governance Reflection (Optional)
-              </summary>
-              <div className="mt-md">
-                <div className="form-group mb-0">
-                  <label
-                    htmlFor="notes-capability"
-                    style={{
-                      fontSize: 'var(--font-size-small)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.025em',
-                      opacity: 0.7,
-                    }}
-                  >
-                    Capability Development Notes
-                  </label>
-                  <p className="text-muted" style={{ fontSize: 'var(--font-size-small)', marginBottom: '8px' }}>
-                    How does this institutional change process develop responsible academic capability, professional judgement, or reflective practice?
-                  </p>
-                  <textarea
-                    id="notes-capability"
-                    value={proposal.institutionalNotes.capabilityNotes || ''}
-                    onChange={(e) => handleInstitutionalNotesChange('capabilityNotes', e.target.value)}
-                    placeholder="Record capability development observations..."
-                    rows={3}
-                    style={{ fontSize: 'var(--font-size-meta)', borderColor: '#ddd' }}
-                  />
-                </div>
-              </div>
-            </details>
+          <div className="form-group mb-md">
+            <label htmlFor="notes-general">General Context Considerations</label>
+            <textarea
+              id="notes-general"
+              value={proposal.institutionalNotes.generalNotes}
+              onChange={(e) => handleInstitutionalNotesChange('generalNotes', e.target.value)}
+              placeholder="Additional notes for departmental records..."
+              rows={2}
+              className="cp-input"
+            />
           </div>
+
+          {/* Capability development reflections */}
+          <div style={{ border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '12px', backgroundColor: '#f8fafc' }}>
+            <label htmlFor="notes-capability" style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+              Academic Capability & Reflective Practice Notes (Optional)
+            </label>
+            <p className="text-small text-muted mb-xs">
+              How does this curriculum change develop reflective academic capability or professional judgement across the teaching team?
+            </p>
+            <textarea
+              id="notes-capability"
+              value={proposal.institutionalNotes.capabilityNotes || ''}
+              onChange={(e) => handleInstitutionalNotesChange('capabilityNotes', e.target.value)}
+              placeholder="Record reflections on academic capability..."
+              rows={2}
+              className="cp-input"
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-md">
+            <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
+              <ArrowLeft size={16} /> Previous: Implementation Plan
+            </button>
+            <button type="button" className="cp-button-primary" onClick={goToNextTab}>
+              Next: Governance History <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 9: Governance History (Batch 2 New Feature) */}
+      {activeTab === 'history' && (
+        <div>
+          <GovernanceHistoryCard
+            events={proposal.events}
+            proposalRef={proposal.ref}
+          />
 
           <div className="cp-card cp-hide-print flex justify-between items-center">
             <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
-              <ArrowLeft size={16} /> Previous: Snapshots & Changes
+              <ArrowLeft size={16} /> Previous: Governance Notes
             </button>
             <button type="button" className="cp-button-primary" onClick={goToNextTab}>
               Next: Output Summary Report <ArrowRight size={16} />
@@ -563,13 +825,13 @@ export const ProposalEditor: React.FC<ProposalEditorProps> = ({
         </div>
       )}
 
-      {/* Tab 6: Output Summary Report */}
+      {/* Tab 10: Output Summary Report */}
       {activeTab === 'summary' && (
         <div>
           <OutputSummaryCard proposal={proposal} />
-          <div className="cp-card cp-hide-print flex justify-between items-center">
+          <div className="cp-card cp-hide-print flex justify-between items-center mt-md">
             <button type="button" className="cp-button-secondary" onClick={goToPrevTab}>
-              <ArrowLeft size={16} /> Previous: Governance Notes
+              <ArrowLeft size={16} /> Previous: Governance History
             </button>
             <button type="button" className="cp-button-secondary" onClick={() => setActiveTab('basics')}>
               Back to Section 1: Basic Details

@@ -20,6 +20,16 @@ function App() {
     updateVersionInActive,
     removeVersionFromActive,
     updateChangeLogInActive,
+    transitionProposalStatus,
+    updateImpactDimension,
+    updateOverallImpactNotes,
+    addGovernanceReview,
+    recordGovernanceDecision,
+    addImplementationAction,
+    updateImplementationAction,
+    deleteImplementationAction,
+    verifyAndCloseProposal,
+    reopenProposal,
   } = useAppState();
 
   const handleImport = async (file: File) => {
@@ -71,6 +81,16 @@ function App() {
                 onUpdateVersion={updateVersionInActive}
                 onRemoveVersion={removeVersionFromActive}
                 onUpdateChangeLog={updateChangeLogInActive}
+                onTransitionStatus={transitionProposalStatus}
+                onUpdateImpactDimension={updateImpactDimension}
+                onUpdateOverallImpactNotes={updateOverallImpactNotes}
+                onAddReview={addGovernanceReview}
+                onRecordDecision={recordGovernanceDecision}
+                onAddAction={addImplementationAction}
+                onUpdateAction={updateImplementationAction}
+                onDeleteAction={deleteImplementationAction}
+                onVerifyAndClose={verifyAndCloseProposal}
+                onReopen={reopenProposal}
               />
             ) : (
               <div
